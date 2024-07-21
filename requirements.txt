@@ -3,3 +3,6 @@ fitz==0.0.1.dev2
 numpy==2.0.0
 sentence_transformers==3.0.1
 tensorflow==2.16.1
+Flask==3.0.3
+Flask-Cors==4.0.1
+
