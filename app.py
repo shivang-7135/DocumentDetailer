@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify,render_template
 from flask_cors import CORS
 from sentence_transformers import SentenceTransformer
 import faiss
@@ -19,6 +19,10 @@ import shutil
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
+
+@app.route('/')
+def index():
+    return render_template('index.html')
 
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
