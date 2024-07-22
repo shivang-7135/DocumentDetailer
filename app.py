@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify,render_template
 from flask_cors import CORS
+import requests
 from sentence_transformers import SentenceTransformer
 import faiss
 import json
@@ -62,8 +63,8 @@ def custom_standardization(input_data):
     return standardized_text.numpy().decode('utf-8')
 
 def split_into_paragraphs(text):
-    pattern = r'(?<=\n)(?=\d+)'
-    paragraphs = re.split(pattern, text)
+    # pattern = r'(?<=\n)(?=\d+)'
+    paragraphs = re.split(r'(?<=\n)(?=\d+|(?=\n\s*\n))', text)
     paragraphs = [paragraph.strip() for paragraph in paragraphs if paragraph.strip()]
     return paragraphs
 
@@ -191,6 +192,23 @@ def query_index(query, model, index, metadata, top_k=5):
 
     return results
 
+def fetch_answer_from_external_api(question,result):
+    
+    data = {
+        "messages": [
+            {
+            "content": "Question=" +question + ",answer to look from Uploaded pdf file and dont include the field name from the json file in answer section = " +str(result) + "answer=Based on your PDF provided , ",
+            "role": "user"
+            }
+        ],
+        "model": "mixtral:8x7b-instruct-v0.1-q6_K"
+    }
+    print("data="+str(data))
+    response = requests.post('https://inf.cl.uni-trier.de/chat/', json=data, headers={'accept': 'application/json', 'Content-Type': 'application/json'})
+    response_data = response.json()
+    
+    return response_data.get('response', '')
+
 def create_answer_to_show(query, results):
     answer = f"Based on your query '{query}', the following relevant information was found:\n\n"
     for result in results:
@@ -208,14 +226,19 @@ def create_answer_to_show(query, results):
 def query_endpoint():
     data = request.json
     query = data.get('query', '')
+    
     top_k = data.get('top_k', 5)
     index = faiss.read_index(index_path)
     with open(metadata_path, 'r') as f:
         metadata = json.load(f)
     results = query_index(query, model, index, metadata, top_k)
     formatted_answer = create_answer_to_show(query, results)
+    answer2 = fetch_answer_from_external_api(query,results[0])
+    print("=>"+answer2)
     
-    return jsonify({'answer': formatted_answer})
+    
+    
+    return jsonify({'answer': answer2+"\n\n"+formatted_answer })
 
 
 
